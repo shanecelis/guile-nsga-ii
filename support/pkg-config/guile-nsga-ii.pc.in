@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: <my library>
-Description: <library to do something>
+Name: guile-nsga-ii
+Description: A guile library for the NSGA-II optimization library
 URL: <homepage>
 Version: @VERSION@
 Requires: guile-2.0
-Libs: -L${libdir} -lhello-world
+Libs: -L${libdir} -lguile-nsga-ii
 Cflags: -I${includedir}

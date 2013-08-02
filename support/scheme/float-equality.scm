@@ -16,12 +16,13 @@
   (and (apply =? (car a) (car b) rest)
        (apply =? (cdr a) (cdr b) rest)))
 
+(define-method (=? (a <vector>) b . rest)
+  (apply =? b (vector->list a) rest))
 
-(define-method (=? (a <vector>) (b <vector>) . rest)
-  (apply =? (vector->list a) (vector->list b) rest))
-
-(define-method (=? (a <uvec>) (b <uvec>) . rest)
-  (apply =? (generalized-vector->list a) (generalized-vector->list b) rest))
+;; Rather than trying to do all pairwise combinations, how about we just
+;; handle the first one and rely on the associativity of equals? 
+(define-method (=? (a <uvec>) b . rest)
+  (apply =? b (array->list a) rest))
 
 (define-method (=? a b . rest)
   #f)

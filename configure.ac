@@ -2,11 +2,12 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([guile-noweb-autotools], [0.1.0], [you@somewhere.com])
+AC_INIT([guile-nsga-ii], [0.1.0], [shane.celis@gmail.com])
 AC_CONFIG_AUX_DIR([support/build-aux])
 
 # We're going to use GNUMake and we're going to like it.
-AM_INIT_AUTOMAKE([-Wall foreign -Wno-portability])
+# I tried to add subdir-objects like automake suggested but then it just didn't work anymore.
+AM_INIT_AUTOMAKE([-Wall foreign -Wno-portability ])
 AM_EXTRA_RECURSIVE_TARGETS([run doc show-doc])
 AC_CONFIG_MACRO_DIR([support/m4])
 # Checks for programs.
@@ -23,8 +24,11 @@ AC_SUBST([BASH])
 AC_PATH_PROG([guile_snarf], guile-snarf)
 AC_SUBST(guile_snarf)
 
+AC_SUBST([NSGA2_HOME], ['${top_srcdir}/nsga2-gnuplot-v1.1.6'])
+
 # Checks for libraries.
 PKG_CHECK_MODULES([GUILE], [guile-2.0])
+PKG_CHECK_MODULES([GUILE_LOGGING], [guile-logging])
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -47,7 +51,7 @@ AC_CONFIG_FILES([ Makefile
                   src/Makefile 
                   tests/Makefile
                   support/pkg-config/Makefile
-                  support/pkg-config/guile-noweb-autotools.pc
+                  support/pkg-config/guile-nsga-ii.pc
                   ], [])
 AC_CONFIG_FILES([ tests/works-without-noweb.sh ], [chmod +x tests/works-without-noweb.sh])
 AC_CONFIG_FILES([bin/env], [chmod a+x bin/env])
