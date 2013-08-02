@@ -15,9 +15,6 @@ the following assumptions: real valued genes only, no constraints.
 #include "math.h"
 #endif
 
-// Turn off numerous warnings caused by Guile's headers.  No big deal.
-//#pragma GCC diagnostic ignored "-Wnull-dereference"
-
 <<Macro>>
 
 <<State>>
@@ -51,9 +48,18 @@ Scheme code, which is a lot easier.
                                 (seed-population #f)
                                 (generation-tick-func #f)
                                 (bin-count 0)
-                                (bit-count 1)
-                                )
-  (primitive-nsga-ii-search fitness-function 
+                                (bit-count 1))
+  (define (wrap-old-fitness-func fitness-func)
+    "Wrap an old fitness-function which had the signature (real-genome -> objective) to
+the new one which is (real-genome, binary-genome, bitvector-genome, objectives, constraints -> nil)"
+    (lambda (real-genome binary-genome bitvector-genome objectives constraints)
+      (let ((obj (fitness-func real-genome)))
+        (array-copy! (any->f64vector obj) objectives))))
+  (define (required-args func)
+    (arity:nreq (car (program-arities func))))
+  (primitive-nsga-ii-search (if (= 1 (required-args fitness-function))
+                                (wrap-old-fitness-func fitness-function)
+                                fitness-function)
                             objective-count 
                             gene-count 
                             population-count
@@ -296,16 +302,20 @@ void test_problem (double *xreal,
                    double *obj, 
                    double *constr)
 {
-  SCM genome, objectives;
-  //SCM binary_genome = SCM_BOOL_F;
+ // Should I exhibit this complete function to Scheme?
+  SCM real_genome, binary_genome, bitvector_genome, objectives, constraints;
   // Nobody should keep references to these arrays, so we can do it without copying.
-  if (nreal != 0)
-    genome = scm_c_array_to_aliased_f64_vector(nreal, xreal);
-  if (nbin != 0)
-    genome = scm_c_array_to_bitvector(nbin, gene);
+  real_genome = nreal == 0 ? SCM_BOOL_F : scm_c_array_to_aliased_f64_vector(nreal, xreal);
+  binary_genome = nbin == 0 ? SCM_BOOL_F : scm_c_array_to_aliased_f64_vector(nbin, xbin);
+  bitvector_genome = nbin == 0 ? SCM_BOOL_F : scm_c_array_to_bitvector(nbin, gene);
+  objectives = nobj == 0 ? SCM_BOOL_F : scm_c_array_to_aliased_f64_vector(nobj, obj);
+  constraints = SCM_BOOL_F; //scm_c_array_to_aliased_f64_vector(ncon, constr);
+  scm_call_5(fitness_procedure, real_genome, binary_genome, bitvector_genome, objectives, constraints);
+  /* SCM genome, objectives;
   objectives = scm_call_1(fitness_procedure, genome);
   objectives = scm_any_to_f64vector(objectives);
   scm_c_f64_vector_to_array(objectives, nobj, obj);
+  */
 }
 @ 
 
@@ -534,7 +544,7 @@ SCM scm_report(population *pop)
       SCM objective;
       SCM genome;
       // XXX Switch these to uniform vectors
-      objective = scm_c_array_to_vector(nobj,  pop->ind[i].obj);
+      objective = scm_c_array_to_f64_vector(nobj,  pop->ind[i].obj);
       genome    = scm_c_array_to_f64_vector(nreal, pop->ind[i].xreal);
       // Add it to the list.
       list = scm_cons(scm_list_3(scm_from_int(pop->ind[i].rank), genome, objective), list);
@@ -575,6 +585,8 @@ library.
 <<file:nsga-ii.scm>>=
 (define-module (nsga-ii)
  #:use-module (ice-9 optargs)
+ #:use-module (system vm program)
+ #:use-module (srfi srfi-4 gnu)
  #:export (nsga-ii-search))
 
 (load-extension "libguile-nsga-ii" "init_nsga_ii")

@@ -7,6 +7,6 @@ Name: guile-nsga-ii
 Description: A guile library for the NSGA-II optimization library
 URL: <homepage>
 Version: @VERSION@
-Requires: guile-2.0
+Requires: guile-2.0 guile-logging
 Libs: -L${libdir} -lguile-nsga-ii
 Cflags: -I${includedir}
