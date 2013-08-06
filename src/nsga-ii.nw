@@ -11,7 +11,6 @@ the following assumptions: real valued genes only, no constraints.
 #include "global.h"
 #include "rand.h"
 #include "logging.h"
-#include "util.h"
 #include "math.h"
 #endif
 
@@ -332,6 +331,8 @@ SCM scm_c_array_to_vector(int count, double* array)
 
 <<Macro>>=
 #define C_STRING_TO_SYMBOL(str) scm_string_to_symbol(scm_from_locale_string(str))
+
+#define scm_c_length(list) scm_to_int(scm_length(list))
 @ 
 
 The [[scm_c_array_to_aliased_f64_vector]] function returns an aliased
