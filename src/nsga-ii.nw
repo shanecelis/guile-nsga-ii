@@ -47,7 +47,9 @@ Scheme code, which is a lot easier.
                                 (seed-population #f)
                                 (generation-tick-func #f)
                                 (bin-count 0)
-                                (bit-count 1))
+                                (bit-count 1)
+                                (real-mutation-rate #f)
+                                (real-crossover-rate #f))
   (define (wrap-old-fitness-func fitness-func)
     "Wrap an old fitness-function which had the signature (real-genome -> objective) to
 the new one which is (real-genome, binary-genome, bitvector-genome, objectives, constraints -> nil)"
@@ -68,7 +70,9 @@ the new one which is (real-genome, binary-genome, bitvector-genome, objectives, 
                             seed-population
                             generation-tick-func
                             (list bin-count
-                                  bit-count)))
+                                  bit-count 
+                                  real-mutation-rate
+                                  real-crossover-rate)))
 @ 
 
 <<test>>=
@@ -161,10 +165,16 @@ SCM_DEFINE(primitive_nsga_ii_search,
 
   SCM bin_count;
   SCM bit_count;
-  bin_count = scm_car(last_args);
-  last_args = scm_cdr(last_args);
-  bit_count = scm_car(last_args);
-  last_args = scm_cdr(last_args);
+  SCM real_mutation_rate;
+  SCM real_crossover_rate;
+  bin_count           = scm_car(last_args);
+  last_args           = scm_cdr(last_args);
+  bit_count           = scm_car(last_args);
+  last_args           = scm_cdr(last_args);
+  real_mutation_rate  = scm_car(last_args);
+  last_args           = scm_cdr(last_args);
+  real_crossover_rate = scm_car(last_args);
+  last_args           = scm_cdr(last_args);
 
   <<Setup search parameters.>>
   fitness_procedure = fitness_function;
@@ -212,7 +222,7 @@ SCM_DEFINE(primitive_nsga_ii_search,
     //report_pop(parent_pop,fpt4);
     //fflush(fpt4);
     //printf("\n gen = %d",i);
-    //scm_gc();
+    scm_gc();
   }
 
 no_loop:
@@ -444,8 +454,18 @@ SCM fitness_procedure;
     //printf("min %e\n", min_realvar[i]);
     max_realvar[i] = 1.0;
   }
-  pcross_real = 0.6;
-  pmut_real = 1.0/((double)nreal);
+  if (scm_is_false(real_crossover_rate)) {
+    pcross_real = 0.6;
+  } else {
+    pcross_real = scm_to_double(real_crossover_rate);
+  }
+  mylog("nsga-ii", PRI_DEBUG, "crossover rate for real set to %f", pcross_real);
+  if (scm_is_false(real_mutation_rate)) {
+    pmut_real = 1.0/((double)nreal);
+  } else {
+    pmut_real = scm_to_double(real_mutation_rate);
+  }
+  mylog("nsga-ii", PRI_DEBUG, "mutation rate for real set to %f", pmut_real);
   // I don't know what these values actually mean.
   // XXX Find out!
   eta_c = 5;
@@ -467,6 +487,7 @@ SCM fitness_procedure;
   }
   pcross_bin = 0.6;
   pmut_bin = 1.0/((double)nbits[0]);
+  mylog("nsga-ii", PRI_DEBUG, "mutation rate for binary set to %f", pmut_bin);
   choice = 0;
 @ 
 
@@ -518,7 +539,6 @@ SCM scm_report_feasible(population *pop)
         pop->ind[i].rank == 1) {
       SCM objective;
       SCM genome;
-      // XXX Switch these to uniform vectors
       objective = scm_c_array_to_f64_vector(nobj,  pop->ind[i].obj);
       if (nreal != 0)
         genome = scm_c_array_to_f64_vector(nreal, pop->ind[i].xreal);
@@ -544,7 +564,6 @@ SCM scm_report(population *pop)
     ) {
       SCM objective;
       SCM genome;
-      // XXX Switch these to uniform vectors
       objective = scm_c_array_to_f64_vector(nobj,  pop->ind[i].obj);
       genome    = scm_c_array_to_f64_vector(nreal, pop->ind[i].xreal);
       // Add it to the list.
